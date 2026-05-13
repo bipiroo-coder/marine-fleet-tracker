@@ -16,24 +16,27 @@ import com.bipiroo.marinefleettracker.model.FishingType;
 import com.bipiroo.marinefleettracker.model.Vessel;
 
 public class MainActivity extends Activity {
-    private LinearLayout listBox;
+    private LinearLayout bodyBox;
     private TextView statusText;
     private TextView summaryText;
     private String mode = "MY";
+    private String page = "DASH";
     private int pressCount = 0;
 
-    private final int navy = Color.rgb(12, 33, 55);
-    private final int blue = Color.rgb(20, 96, 168);
+    private final int navy = Color.rgb(10, 28, 48);
+    private final int blue = Color.rgb(22, 97, 170);
+    private final int green = Color.rgb(29, 145, 94);
     private final int sky = Color.rgb(232, 243, 255);
-    private final int card = Color.WHITE;
-    private final int muted = Color.rgb(93, 103, 116);
+    private final int bg = Color.rgb(241, 246, 252);
+    private final int muted = Color.rgb(88, 101, 118);
+    private final int line = Color.rgb(218, 228, 238);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         try {
             drawScreen();
-            renderList("READY");
+            render("통합판 시작");
         } catch (Exception e) {
             TextView fallback = new TextView(this);
             fallback.setText("Marine Fleet Tracker\nSAFE MODE\n" + e.getClass().getSimpleName());
@@ -46,13 +49,13 @@ public class MainActivity extends Activity {
     private void drawScreen() {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(18, 18, 18, 18);
-        root.setBackgroundColor(Color.rgb(241, 246, 252));
+        root.setPadding(16, 16, 16, 16);
+        root.setBackgroundColor(bg);
 
         LinearLayout hero = new LinearLayout(this);
         hero.setOrientation(LinearLayout.VERTICAL);
         hero.setPadding(22, 20, 22, 20);
-        hero.setBackground(roundRect(navy, 28, 0));
+        hero.setBackground(roundRect(navy, 30, 0));
         root.addView(hero, new LinearLayout.LayoutParams(-1, -2));
 
         TextView title = new TextView(this);
@@ -63,10 +66,10 @@ public class MainActivity extends Activity {
         hero.addView(title);
 
         TextView sub = new TextView(this);
-        sub.setText("Fleet dashboard v0.3");
-        sub.setTextSize(15);
+        sub.setText("Integrated MVP v0.4 · 선단 관제 / 지도 / 위판 / 통계");
+        sub.setTextSize(14);
         sub.setTextColor(Color.rgb(190, 215, 240));
-        sub.setPadding(0, 4, 0, 0);
+        sub.setPadding(0, 5, 0, 0);
         hero.addView(sub);
 
         summaryText = new TextView(this);
@@ -77,134 +80,245 @@ public class MainActivity extends Activity {
         hero.addView(summaryText);
 
         statusText = new TextView(this);
-        statusText.setTextSize(15);
-        statusText.setTextColor(Color.rgb(195, 230, 210));
+        statusText.setTextSize(14);
+        statusText.setTextColor(Color.rgb(200, 235, 212));
         statusText.setPadding(0, 8, 0, 0);
         hero.addView(statusText);
 
-        LinearLayout row1 = new LinearLayout(this);
-        row1.setOrientation(LinearLayout.HORIZONTAL);
-        row1.setGravity(Gravity.CENTER);
-        row1.setPadding(0, 16, 0, 0);
-        row1.addView(makeModeButton("우리회사", "MY"));
-        row1.addView(makeModeButton("소형선망", "SMALL"));
-        root.addView(row1);
-
-        LinearLayout row2 = new LinearLayout(this);
-        row2.setOrientation(LinearLayout.HORIZONTAL);
-        row2.setGravity(Gravity.CENTER);
-        row2.addView(makeModeButton("대형선망", "LARGE"));
-        row2.addView(makeModeButton("전체", "ALL"));
-        row2.addView(makeRefreshButton());
-        root.addView(row2);
+        root.addView(buttonRow(new String[][]{{"관제", "DASH"}, {"지도", "MAP"}, {"위판", "AUCTION"}}));
+        root.addView(buttonRow(new String[][]{{"통계", "STATS"}, {"설정", "SETTINGS"}, {"갱신", "REFRESH"}}));
+        root.addView(buttonRow(new String[][]{{"우리회사", "MY"}, {"소형", "SMALL"}, {"대형", "LARGE"}, {"전체", "ALL"}}));
 
         ScrollView scroll = new ScrollView(this);
-        listBox = new LinearLayout(this);
-        listBox.setOrientation(LinearLayout.VERTICAL);
-        listBox.setPadding(0, 10, 0, 10);
-        scroll.addView(listBox);
+        bodyBox = new LinearLayout(this);
+        bodyBox.setOrientation(LinearLayout.VERTICAL);
+        bodyBox.setPadding(0, 10, 0, 16);
+        scroll.addView(bodyBox);
         root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
 
         setContentView(root);
     }
 
-    private Button makeModeButton(String label, String value) {
+    private LinearLayout buttonRow(String[][] items) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER);
+        row.setPadding(0, 7, 0, 0);
+        for (String[] item : items) {
+            row.addView(makeButton(item[0], item[1]));
+        }
+        return row;
+    }
+
+    private Button makeButton(String label, String value) {
         Button button = new Button(this);
         button.setText(label);
         button.setAllCaps(false);
-        button.setTextSize(16);
+        button.setTextSize(15);
         button.setTextColor(Color.WHITE);
         button.setTypeface(Typeface.DEFAULT_BOLD);
-        button.setBackground(roundRect(blue, 22, 0));
-        button.setPadding(14, 10, 14, 10);
+        button.setPadding(10, 9, 10, 9);
+        button.setBackground(roundRect(isModeValue(value) ? blue : green, 22, 0));
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, -2, 1);
-        params.setMargins(5, 5, 5, 5);
+        params.setMargins(4, 3, 4, 3);
         button.setLayoutParams(params);
         button.setOnClickListener(v -> {
-            mode = value;
             pressCount++;
-            renderList(label + " selected");
+            if ("REFRESH".equals(value)) {
+                render("새로고침 완료");
+            } else if (isModeValue(value)) {
+                mode = value;
+                render(label + " 필터");
+            } else {
+                page = value;
+                render(label + " 화면");
+            }
         });
         return button;
     }
 
-    private Button makeRefreshButton() {
-        Button button = new Button(this);
-        button.setText("갱신");
-        button.setAllCaps(false);
-        button.setTextSize(16);
-        button.setTextColor(Color.WHITE);
-        button.setTypeface(Typeface.DEFAULT_BOLD);
-        button.setBackground(roundRect(Color.rgb(28, 145, 97), 22, 0));
-        button.setPadding(14, 10, 14, 10);
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, -2, 1);
-        params.setMargins(5, 5, 5, 5);
-        button.setLayoutParams(params);
-        button.setOnClickListener(v -> {
-            pressCount++;
-            renderList("refresh complete");
-        });
-        return button;
+    private boolean isModeValue(String value) {
+        return "MY".equals(value) || "SMALL".equals(value) || "LARGE".equals(value) || "ALL".equals(value);
     }
 
-    private void renderList(String message) {
-        listBox.removeAllViews();
-        int total = countMode();
-        summaryText.setText(modeLabel() + " · " + total + " vessels");
-        statusText.setText(message + " · taps " + pressCount + " · stable screen");
+    private void render(String message) {
+        bodyBox.removeAllViews();
+        int shown = countMode();
+        summaryText.setText(pageLabel() + " · " + modeLabel() + " · " + shown + "척");
+        statusText.setText(message + " · taps " + pressCount + " · 외부 API 미연결 안전모드");
 
-        TextView info = new TextView(this);
-        info.setText("지도와 실시간 위치를 붙이기 전 단계입니다. 지금은 화면 반응, 선박 분류, 기본 관제판 디자인을 확인합니다.");
-        info.setTextSize(15);
-        info.setTextColor(muted);
-        info.setPadding(16, 16, 16, 16);
-        info.setBackground(roundRect(sky, 22, 0));
-        LinearLayout.LayoutParams infoParams = new LinearLayout.LayoutParams(-1, -2);
-        infoParams.setMargins(0, 8, 0, 12);
-        listBox.addView(info, infoParams);
+        if ("DASH".equals(page)) renderDashboard();
+        else if ("MAP".equals(page)) renderMap();
+        else if ("AUCTION".equals(page)) renderAuction();
+        else if ("STATS".equals(page)) renderStats();
+        else renderSettings();
+    }
 
-        int count = 0;
+    private void renderDashboard() {
+        addNotice("통합 관제 화면입니다. 현재는 샘플 선박 기준이며, 실제 AIS/어시장 데이터는 설정에서 연결하는 구조로 확장합니다.");
+        addKpiRow("현재 표시", countMode() + "척", "월 추정 위판", formatMoney(totalMonthAmount()) + "원");
+        addKpiRow("오늘 추정 상자", totalTodayBoxes() + "상자", "연 추정 위판", formatMoney(totalYearAmount()) + "원");
+        int i = 0;
         for (Vessel vessel : FleetSeed.all()) {
             if (!matches(vessel)) continue;
-            count++;
-            listBox.addView(vesselCard(count, vessel));
+            i++;
+            addVesselCard(i, vessel, true);
         }
-
-        TextView footer = new TextView(this);
-        footer.setText("표시 선박 수: " + count + "척");
-        footer.setTextSize(17);
-        footer.setTypeface(Typeface.DEFAULT_BOLD);
-        footer.setGravity(Gravity.CENTER);
-        footer.setTextColor(navy);
-        footer.setPadding(10, 18, 10, 18);
-        listBox.addView(footer);
     }
 
-    private TextView vesselCard(int index, Vessel vessel) {
-        TextView row = new TextView(this);
-        String typeIcon = vessel.fishingType == FishingType.SMALL_PURSE_SEINE ? "S" : "L";
-        String own = vessel.isMyCompany ? " · MY" : "";
-        row.setText(typeIcon + "  " + index + ". " + vessel.name + own + "\n"
+    private void renderMap() {
+        addNotice("간이 지도형 화면입니다. 외부 지도 라이브러리 없이 먼저 해상 구역·선박 위치 흐름을 확인하게 만들었습니다.");
+        TextView map = new TextView(this);
+        map.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+        map.setTextSize(15);
+        map.setTextColor(Color.rgb(20, 55, 85));
+        map.setText("북\n┌────────────────────┐\n│     S1       L1     │\n│                    │\n│  MY1        S2      │\n│                    │\n│        MY2          │\n└────────────────────┘\n남\n\nMY=우리회사, S=소형선망, L=대형선망");
+        map.setPadding(18, 18, 18, 18);
+        map.setBackground(roundRect(Color.rgb(222, 238, 251), 24, line));
+        addView(map, 0, 8, 0, 12);
+
+        int i = 0;
+        for (Vessel vessel : FleetSeed.all()) {
+            if (!matches(vessel)) continue;
+            i++;
+            TextView row = cardText("위치 " + i + " · " + vessel.name + "\n구역: " + zoneFor(i) + " · 속력: " + speedFor(i) + "kn · 상태: " + stateFor(i) + "\n최종수신: 샘플 데이터 · 실제 AIS 연결 예정", 16, navy, Color.WHITE);
+            addView(row, 0, 6, 0, 6);
+        }
+    }
+
+    private void renderAuction() {
+        addNotice("위판 화면입니다. 부산·제주·전남·경남 위판 데이터 연결 전까지는 샘플 계산값으로 화면 구조를 확인합니다.");
+        int i = 0;
+        for (Vessel vessel : FleetSeed.all()) {
+            if (!matches(vessel)) continue;
+            i++;
+            int today = boxesFor(i);
+            int month = today * 12;
+            long amount = (long) month * 38000L;
+            TextView row = cardText(vessel.name + "\n오늘: " + today + "상자 · 이번달: " + month + "상자\n월 위판 추정: " + formatMoney(amount) + "원\n최근 위판장: 자동연동 예정", 17, navy, Color.WHITE);
+            addView(row, 0, 7, 0, 7);
+        }
+    }
+
+    private void renderStats() {
+        addNotice("월별·연도별·선박별·회사별 구분 화면입니다. 실제 위판 데이터가 들어오면 이 계산식에 연결됩니다.");
+        addKpiRow("월 전체", formatMoney(totalMonthAmount()) + "원", "연 전체", formatMoney(totalYearAmount()) + "원");
+        addKpiRow("소형선망", countType(FishingType.SMALL_PURSE_SEINE) + "척", "대형선망", countType(FishingType.LARGE_PURSE_SEINE) + "척");
+        TextView table = cardText("회사별 요약\nMY COMPANY: " + myCompanyCount() + "척 · 기준회사\nOTHER COMPANY: 비교대상\n\n분석 예정\n- 월별 위판고\n- 연도별 위판고\n- 선박별 순위\n- 회사별 순위\n- 전날 조업 추정", 17, navy, Color.WHITE);
+        addView(table, 0, 8, 0, 8);
+    }
+
+    private void renderSettings() {
+        addNotice("설정 화면입니다. 나중에 기준회사 변경, 선박 등록, AIS API, 위판 데이터 연결을 여기서 관리합니다.");
+        TextView settings = cardText("기준회사: MY COMPANY\n기본화면: 관제\n위치 갱신: 수동/자동 예정\n외부 AIS API: 미연결\n위판 데이터: 미연결\n\n다음 단계\n1. 실제 선박 등록 화면\n2. 좌표 저장\n3. 지도 라이브러리 연결\n4. API 키 입력\n5. CSV/KML/GeoJSON 내보내기", 17, navy, Color.WHITE);
+        addView(settings, 0, 8, 0, 8);
+    }
+
+    private void addVesselCard(int index, Vessel vessel, boolean full) {
+        String own = vessel.isMyCompany ? " · 기준회사" : "";
+        String text = index + ". " + vessel.name + own + "\n"
                 + vessel.company + " / " + vessel.fleet + "\n"
                 + vessel.fishingType.label + " · MMSI " + vessel.mmsi + "\n"
-                + "상태: 대기 · 위치자료 연결 예정");
-        row.setTextSize(17);
-        row.setLineSpacing(3, 1.05f);
-        row.setTextColor(Color.rgb(25, 35, 45));
-        row.setPadding(20, 18, 20, 18);
-        row.setBackground(roundRect(card, 24, Color.rgb(218, 228, 238)));
+                + "구역: " + zoneFor(index) + " · 속력: " + speedFor(index) + "kn · " + stateFor(index) + "\n"
+                + "월 위판 추정: " + formatMoney((long) boxesFor(index) * 12L * 38000L) + "원";
+        addView(cardText(text, 17, Color.rgb(25, 35, 45), Color.WHITE), 0, 7, 0, 7);
+    }
+
+    private void addNotice(String text) {
+        TextView notice = cardText(text, 15, muted, sky);
+        addView(notice, 0, 8, 0, 12);
+    }
+
+    private void addKpiRow(String a, String av, String b, String bv) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.addView(kpiCard(a, av));
+        row.addView(kpiCard(b, bv));
+        addView(row, 0, 5, 0, 5);
+    }
+
+    private TextView kpiCard(String label, String value) {
+        TextView view = cardText(label + "\n" + value, 16, navy, Color.WHITE);
+        view.setGravity(Gravity.CENTER);
+        view.setTypeface(Typeface.DEFAULT_BOLD);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, -2, 1);
+        params.setMargins(5, 5, 5, 5);
+        view.setLayoutParams(params);
+        return view;
+    }
+
+    private TextView cardText(String text, int size, int color, int fill) {
+        TextView view = new TextView(this);
+        view.setText(text);
+        view.setTextSize(size);
+        view.setTextColor(color);
+        view.setLineSpacing(4, 1.05f);
+        view.setPadding(18, 18, 18, 18);
+        view.setBackground(roundRect(fill, 24, line));
+        return view;
+    }
+
+    private void addView(TextView view, int l, int t, int r, int b) {
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
-        params.setMargins(0, 7, 0, 7);
-        row.setLayoutParams(params);
-        return row;
+        params.setMargins(l, t, r, b);
+        bodyBox.addView(view, params);
+    }
+
+    private void addView(LinearLayout view, int l, int t, int r, int b) {
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
+        params.setMargins(l, t, r, b);
+        bodyBox.addView(view, params);
+    }
+
+    private int boxesFor(int index) { return 40 + index * 18; }
+    private String speedFor(int index) { return String.valueOf(4 + index); }
+    private String zoneFor(int index) { return "SEA-" + (char)('A' + index) + "0" + index; }
+    private String stateFor(int index) { return index % 2 == 0 ? "항해중" : "조업추정"; }
+
+    private int totalTodayBoxes() {
+        int sum = 0;
+        int i = 0;
+        for (Vessel vessel : FleetSeed.all()) {
+            if (!matches(vessel)) continue;
+            i++;
+            sum += boxesFor(i);
+        }
+        return sum;
+    }
+
+    private long totalMonthAmount() { return (long) totalTodayBoxes() * 12L * 38000L; }
+    private long totalYearAmount() { return totalMonthAmount() * 12L; }
+
+    private String formatMoney(long v) {
+        if (v >= 100000000L) return (v / 100000000L) + "억 " + ((v % 100000000L) / 10000L) + "만";
+        if (v >= 10000L) return (v / 10000L) + "만";
+        return String.valueOf(v);
     }
 
     private int countMode() {
         int count = 0;
-        for (Vessel vessel : FleetSeed.all()) {
-            if (matches(vessel)) count++;
-        }
+        for (Vessel vessel : FleetSeed.all()) if (matches(vessel)) count++;
         return count;
+    }
+
+    private int countType(FishingType type) {
+        int count = 0;
+        for (Vessel vessel : FleetSeed.all()) if (vessel.fishingType == type) count++;
+        return count;
+    }
+
+    private int myCompanyCount() {
+        int count = 0;
+        for (Vessel vessel : FleetSeed.all()) if (vessel.isMyCompany) count++;
+        return count;
+    }
+
+    private String pageLabel() {
+        if ("MAP".equals(page)) return "지도";
+        if ("AUCTION".equals(page)) return "위판";
+        if ("STATS".equals(page)) return "통계";
+        if ("SETTINGS".equals(page)) return "설정";
+        return "관제";
     }
 
     private String modeLabel() {
