@@ -1,3 +1,3 @@
 # Build Status
 
-Trigger APK build for version 0.2.0.
+Trigger APK build for version 0.3.0.
