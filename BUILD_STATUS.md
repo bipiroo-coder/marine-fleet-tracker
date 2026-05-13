@@ -1,3 +1,3 @@
 # Build Status
 
-This file exists to trigger the first GitHub Actions APK build.
+Trigger APK build for version 0.2.0.
