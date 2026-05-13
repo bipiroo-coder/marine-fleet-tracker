@@ -2,6 +2,7 @@ package com.bipiroo.marinefleettracker;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.view.Gravity;
 import android.widget.Button;
@@ -15,88 +16,124 @@ import com.bipiroo.marinefleettracker.model.Vessel;
 
 public class MainActivity extends Activity {
     private LinearLayout listBox;
+    private TextView statusText;
     private String mode = "MY";
+    private int pressCount = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(16, 16, 16, 16);
-
-        TextView title = new TextView(this);
-        title.setText("Marine Fleet Tracker");
-        title.setTextSize(24);
-        title.setTypeface(Typeface.DEFAULT_BOLD);
-        title.setGravity(Gravity.CENTER);
-        root.addView(title);
-
-        LinearLayout buttons = new LinearLayout(this);
-        buttons.setOrientation(LinearLayout.HORIZONTAL);
-        buttons.setGravity(Gravity.CENTER);
-
-        Button my = makeButton("My");
-        Button small = makeButton("Small");
-        Button large = makeButton("Large");
-        Button all = makeButton("All");
-
-        my.setOnClickListener(v -> { mode = "MY"; renderList(); });
-        small.setOnClickListener(v -> { mode = "SMALL"; renderList(); });
-        large.setOnClickListener(v -> { mode = "LARGE"; renderList(); });
-        all.setOnClickListener(v -> { mode = "ALL"; renderList(); });
-
-        buttons.addView(my);
-        buttons.addView(small);
-        buttons.addView(large);
-        buttons.addView(all);
-        root.addView(buttons);
-
-        ScrollView scrollView = new ScrollView(this);
-        listBox = new LinearLayout(this);
-        listBox.setOrientation(LinearLayout.VERTICAL);
-        scrollView.addView(listBox);
-        root.addView(scrollView, new LinearLayout.LayoutParams(-1, 0, 1));
-
-        setContentView(root);
-        renderList();
+        try {
+            drawScreen();
+            renderList("앱 시작 완료");
+        } catch (Exception e) {
+            TextView fallback = new TextView(this);
+            fallback.setText("Marine Fleet Tracker\n오류 화면\n" + e.getClass().getSimpleName());
+            fallback.setTextSize(22);
+            fallback.setPadding(30, 30, 30, 30);
+            setContentView(fallback);
+        }
     }
 
-    private Button makeButton(String text) {
+    private void drawScreen() {
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(18, 18, 18, 18);
+        root.setBackgroundColor(Color.WHITE);
+
+        TextView title = new TextView(this);
+        title.setText("Marine Fleet Tracker v0.2");
+        title.setTextSize(26);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        title.setGravity(Gravity.CENTER);
+        title.setTextColor(Color.BLACK);
+        root.addView(title);
+
+        statusText = new TextView(this);
+        statusText.setTextSize(17);
+        statusText.setTextColor(Color.rgb(0, 80, 0));
+        statusText.setGravity(Gravity.CENTER);
+        statusText.setPadding(0, 12, 0, 12);
+        root.addView(statusText);
+
+        LinearLayout row1 = new LinearLayout(this);
+        row1.setOrientation(LinearLayout.HORIZONTAL);
+        row1.setGravity(Gravity.CENTER);
+        row1.addView(makeModeButton("우리회사", "MY"));
+        row1.addView(makeModeButton("소형", "SMALL"));
+        root.addView(row1);
+
+        LinearLayout row2 = new LinearLayout(this);
+        row2.setOrientation(LinearLayout.HORIZONTAL);
+        row2.setGravity(Gravity.CENTER);
+        row2.addView(makeModeButton("대형", "LARGE"));
+        row2.addView(makeModeButton("전체", "ALL"));
+        row2.addView(makeRefreshButton());
+        root.addView(row2);
+
+        ScrollView scroll = new ScrollView(this);
+        listBox = new LinearLayout(this);
+        listBox.setOrientation(LinearLayout.VERTICAL);
+        scroll.addView(listBox);
+        root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
+
+        setContentView(root);
+    }
+
+    private Button makeModeButton(String label, String value) {
         Button button = new Button(this);
-        button.setText(text);
+        button.setText(label);
         button.setAllCaps(false);
+        button.setTextSize(18);
+        button.setOnClickListener(v -> {
+            mode = value;
+            pressCount++;
+            renderList(label + " 버튼 작동");
+        });
         return button;
     }
 
-    private void renderList() {
-        listBox.removeAllViews();
+    private Button makeRefreshButton() {
+        Button button = new Button(this);
+        button.setText("새로고침");
+        button.setAllCaps(false);
+        button.setTextSize(18);
+        button.setOnClickListener(v -> {
+            pressCount++;
+            renderList("새로고침 작동");
+        });
+        return button;
+    }
 
-        TextView header = new TextView(this);
-        header.setText("Mode: " + mode);
-        header.setTextSize(18);
-        header.setTypeface(Typeface.DEFAULT_BOLD);
-        header.setPadding(0, 20, 0, 12);
-        listBox.addView(header);
+    private void renderList(String message) {
+        listBox.removeAllViews();
+        statusText.setText(message + " | 화면: " + mode + " | 클릭: " + pressCount);
+
+        TextView info = new TextView(this);
+        info.setText("현재는 안정성 확인용 화면입니다. 이 화면에서 버튼이 바뀌면 앱은 정상 작동 중입니다. 다음 단계에서 지도와 위치 표시를 붙입니다.");
+        info.setTextSize(16);
+        info.setTextColor(Color.DKGRAY);
+        info.setPadding(10, 18, 10, 18);
+        listBox.addView(info);
 
         int count = 0;
         for (Vessel vessel : FleetSeed.all()) {
             if (!matches(vessel)) continue;
             count++;
             TextView row = new TextView(this);
-            row.setText(vessel.name + "\n" + vessel.company + " / " + vessel.fleet + " / " + vessel.fishingType.label + "\nMMSI: " + vessel.mmsi);
-            row.setTextSize(16);
-            row.setPadding(16, 16, 16, 16);
+            row.setText(count + ". " + vessel.name + "\n회사: " + vessel.company + "\n선단: " + vessel.fleet + "\n어업: " + vessel.fishingType.label + "\nMMSI: " + vessel.mmsi);
+            row.setTextSize(18);
+            row.setTextColor(Color.BLACK);
+            row.setPadding(18, 18, 18, 18);
             listBox.addView(row);
         }
 
-        if (count == 0) {
-            TextView empty = new TextView(this);
-            empty.setText("No vessels");
-            empty.setTextSize(16);
-            empty.setPadding(16, 16, 16, 16);
-            listBox.addView(empty);
-        }
+        TextView footer = new TextView(this);
+        footer.setText("표시 선박 수: " + count);
+        footer.setTextSize(18);
+        footer.setTypeface(Typeface.DEFAULT_BOLD);
+        footer.setPadding(10, 24, 10, 24);
+        listBox.addView(footer);
     }
 
     private boolean matches(Vessel vessel) {
