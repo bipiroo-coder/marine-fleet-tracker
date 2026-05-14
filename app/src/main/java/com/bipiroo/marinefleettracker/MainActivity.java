@@ -2,6 +2,7 @@ package com.bipiroo.marinefleettracker;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -42,7 +43,7 @@ public class MainActivity extends Activity {
         LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(16,16,16,16); root.setBackgroundColor(bg);
         LinearLayout head = new LinearLayout(this); head.setOrientation(LinearLayout.VERTICAL); head.setPadding(22,20,22,20); head.setBackground(round(navy,30,0)); root.addView(head,new LinearLayout.LayoutParams(-1,-2));
         TextView t = txt("Marine Fleet Tracker",27,Color.WHITE,true); head.addView(t);
-        TextView sub = txt("Full MVP v0.5",14,Color.rgb(190,215,240),false); head.addView(sub);
+        TextView sub = txt("Full MVP v0.7 · real map screen added",14,Color.rgb(190,215,240),false); head.addView(sub);
         title2 = txt("",18,Color.WHITE,true); title2.setPadding(0,14,0,0); head.addView(title2);
         state = txt("",14,Color.rgb(200,235,212),false); state.setPadding(0,6,0,0); head.addView(state);
         root.addView(row(new String[][]{{"관제","DASH"},{"위치","MAP"},{"위판","SALE"}}));
@@ -64,11 +65,19 @@ public class MainActivity extends Activity {
     }
 
     void dash() { notice("전체 앱 화면입니다. 선박등록, 위치, 위판, 통계를 한 APK 안에 묶었습니다."); kpi("표시",filtered().size()+"척","저장",saved().size()+"척"); kpi("오늘",boxes()+"상자","월위판",money(month())); int i=0; for(Vessel v:filtered()) card(++i,v); }
-    void map() { notice("위치 화면입니다. 실제 지도 연결 전 오프라인 위치판입니다."); add(cardText("북\n┌──────────────┐\n│ S1      L1   │\n│   MY1   S2   │\n│      MY2     │\n└──────────────┘\n남",16,navy,sky)); int i=0; for(Vessel v:filtered()) add(cardText((++i)+". "+v.name+"\n구역 "+zone(i)+" · "+speed(i)+"kn · "+stateFor(i),16,navy,Color.WHITE)); }
+
+    void map() {
+        notice("위치 화면입니다. 아래 버튼을 누르면 실제 OpenStreetMap 지도 화면이 열립니다. 현재 마커는 샘플 위치입니다.");
+        Button open = act("실제 지도 열기", green, v -> startActivity(new Intent(this, MapActivity.class)));
+        box.addView(open);
+        add(cardText("간이 위치판\n북\n┌──────────────┐\n│ S1      L1   │\n│   MY1   S2   │\n│      MY2     │\n└──────────────┘\n남",16,navy,sky));
+        int i=0; for(Vessel v:filtered()) add(cardText((++i)+". "+v.name+"\n구역 "+zone(i)+" · "+speed(i)+"kn · "+stateFor(i),16,navy,Color.WHITE));
+    }
+
     void sale() { notice("위판 화면입니다. 현재는 샘플 계산이며 실제 위판자료 연결 자리입니다."); int i=0; for(Vessel v:filtered()){i++; int b=40+i*18; add(cardText(v.name+"\n오늘 "+b+"상자 · 월 "+(b*12)+"상자\n월 위판 "+money((long)b*12*38000)+"\n전날 조업추정 "+zone(i),17,navy,Color.WHITE));} }
     void stat() { notice("통계 화면입니다. 월별·연도별·선박별·회사별 집계 구조입니다."); kpi("월",money(month()),"연",money(month()*12)); kpi("소형",countType(FishingType.SMALL_PURSE_SEINE)+"척","대형",countType(FishingType.LARGE_PURSE_SEINE)+"척"); add(cardText("회사별\n우리회사 "+mineCount()+"척\n전체 "+all().size()+"척\n\n예정: 선박별 순위, 회사별 순위, 전날 조업추정",17,navy,Color.WHITE)); }
     void vesselPage() { notice("선박을 여러 척 저장할 수 있습니다. 저장 후 관제/위치/위판/통계에 반영됩니다."); nameIn=input("선명"); mmsiIn=input("MMSI"); companyIn=input("회사"); fleetIn=input("선단"); mineIn=new CheckBox(this); mineIn.setText("우리회사"); mineIn.setChecked(true); largeIn=new CheckBox(this); largeIn.setText("대형선망, 해제하면 소형선망"); add(nameIn); add(mmsiIn); add(companyIn); add(fleetIn); box.addView(mineIn); box.addView(largeIn); LinearLayout r=new LinearLayout(this); r.addView(act("추가",Color.rgb(210,118,38),v->addVessel())); r.addView(act("전체삭제",Color.rgb(170,58,58),v->clearVessels())); box.addView(r); int i=0; for(Vessel v:saved()) card(++i,v); }
-    void setPage() { notice("설정 화면입니다. 실제 위치 API, 지도, 위판자료 연결은 다음 단계에서 이 화면에 붙입니다."); add(cardText("현재상태\n오프라인 MVP\n저장선박 "+saved().size()+"척\n기준회사 필터 지원\n\n포함기능\n관제 / 위치 / 위판 / 통계 / 선박등록",17,navy,Color.WHITE)); }
+    void setPage() { notice("설정 화면입니다. 실제 위치 API, 지도, 위판자료 연결은 다음 단계에서 이 화면에 붙입니다."); add(cardText("현재상태\n오프라인 MVP + 실제 지도 화면\n저장선박 "+saved().size()+"척\n기준회사 필터 지원\n\n포함기능\n관제 / 위치 / 실제지도 / 위판 / 통계 / 선박등록",17,navy,Color.WHITE)); }
 
     void addVessel(){ String n=clean(val(nameIn,"VESSEL")), m=clean(val(mmsiIn,"000000000")), c=clean(val(companyIn,"MY COMPANY")), f=clean(val(fleetIn,"FLEET")); String rec=n+"|"+m+"|"+c+"|"+f+"|"+(largeIn.isChecked()?"L":"S")+"|"+(mineIn.isChecked()?"1":"0"); String old=prefs().getString("vessels",""); prefs().edit().putString("vessels", old.length()==0?rec:old+";;"+rec).apply(); render("saved"); }
     void clearVessels(){ prefs().edit().remove("vessels").apply(); render("cleared"); }
